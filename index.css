@@ -1,0 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-ink text-paper font-body; line-height: 1.6; }
+button:focus-visible { outline: 2px solid #c9a24b; outline-offset: 2px; }
