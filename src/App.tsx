@@ -1,9 +1,22 @@
+import { useState } from 'react';
 import Inbox from './components/Inbox';
 import Meters from './components/Meters';
+import Parliament from './components/Parliament';
 import { useGame } from './hooks/useGame';
 
 export default function App() {
-  const { state, current, choose, nextWeek, restart } = useGame();
+  const { state, current, choose, nextWeek, advanceBill, resolveNoConfidence, restart } = useGame();
+  const [tab, setTab] = useState<'inbox' | 'parliament'>('inbox');
+  const showTab = state.noConfidence ? 'parliament' : tab;
+
+  const tabBtn = (id: 'inbox' | 'parliament', label: string) => (
+    <button
+      onClick={() => setTab(id)}
+      className={`px-4 py-2 font-head text-lg ${showTab === id ? 'border-b-2 border-brass' : 'opacity-60 hover:opacity-100'}`}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -26,7 +39,17 @@ export default function App() {
           </button>
         </div>
       ) : (
-        <Inbox state={state} current={current} onChoose={choose} onNext={nextWeek} />
+        <>
+          <nav className="mb-5 flex gap-2 border-b border-paper/20">
+            {tabBtn('inbox', 'Inbox')}
+            {tabBtn('parliament', state.noConfidence ? 'Parliament (vote called)' : 'Parliament')}
+          </nav>
+          {showTab === 'inbox' ? (
+            <Inbox state={state} current={current} onChoose={choose} onNext={nextWeek} />
+          ) : (
+            <Parliament state={state} onAdvance={advanceBill} onConfidence={resolveNoConfidence} />
+          )}
+        </>
       )}
     </div>
   );

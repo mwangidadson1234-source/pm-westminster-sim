@@ -22,6 +22,23 @@ export interface GameEvent {
   followUpOnly?: boolean;              // only appears as the result of an earlier choice
 }
 
+export type Whip = 'normal' | 'three-line' | 'concession';
+export type Effects = [number, number, number, number];
+
+export interface Bill {
+  id: string;
+  name: string;
+  summary: string;
+  controversy: number;      // 0-100: how many MPs dislike it
+  passEffects: Effects;
+  failEffects: Effects;
+}
+export interface BillState { id: string; stage: number; status: 'active' | 'passed' | 'failed'; }
+export interface VoteResult {
+  bill: string; stage: string; whip: Whip;
+  forVotes: number; against: number; rebels: number; passed: boolean;
+}
+
 export interface HistoryItem { id: string; week: number; choice: string; }
 
 export interface GameState {
@@ -31,6 +48,10 @@ export interface GameState {
   seen: string[];
   queue: string[];
   history: HistoryItem[];
+  bills: BillState[];
+  vote: VoteResult | null;
+  noConfidence: boolean;
+  acted: boolean;
   lastResult: { text: string; deltas: Metrics } | null;
   ended: string | null;
 }
