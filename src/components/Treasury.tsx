@@ -15,6 +15,7 @@ const FIELDS: { key: keyof Budget; label: string; min: number; max: number; unit
 export default function Treasury({ state, onBudget }: { state: GameState; onBudget: (b: Budget) => void }) {
   const [draft, setDraft] = useState<Budget>(state.budget);
   const e = state.economy;
+  const unchanged = (Object.keys(draft) as (keyof Budget)[]).every((k) => draft[k] === state.budget[k]);
   const rev = revenue(draft), spend = spending(draft), def = ((spend - rev) / GDP) * 100;
   const stat = (label: string, value: string, bad: boolean) => (
     <div><div className="text-sm opacity-70">{label}</div><div className={`font-head text-xl font-bold ${bad ? 'text-rust' : ''}`}>{value}</div></div>
@@ -49,7 +50,7 @@ export default function Treasury({ state, onBudget }: { state: GameState; onBudg
           Projected: raises {Math.round(rev)} bn, spends {Math.round(spend)} bn, deficit {def.toFixed(1)}% of GDP.
           {def > 5 && <span className="text-rust"> The bond markets will panic at this level.</span>}
         </p>
-        <button disabled={state.cooldown > 0} onClick={() => onBudget(draft)}
+        <button disabled={state.cooldown > 0 || unchanged} onClick={() => onBudget(draft)}
           className="mt-4 bg-brass px-5 py-2 font-semibold text-ink hover:bg-paper disabled:opacity-40">
           Present the Budget
         </button>
