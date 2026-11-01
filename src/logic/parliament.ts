@@ -1,4 +1,4 @@
-import type { Effects, Metrics, Whip } from '../types';
+import type { Difficulty, Effects, Metrics, Whip } from '../types';
 
 // 650 seats. A government needs 326 for a majority.
 export const SEATS = { gov: 345, opp: 240, other: 65 };
@@ -27,4 +27,11 @@ export function simulateVote(m: Metrics, controversy: number, whip: Whip) {
   const forVotes = SEATS.gov - rebels + othersFor;
   const against = SEATS.opp + (SEATS.other - othersFor) + rebels;
   return { forVotes, against, rebels, passed: forVotes > against };
+}
+
+// Difficulty makes bad news hit harder (hard) or softer (easy)
+export function applyScaled(m: Metrics, e: Effects, d: Difficulty): Metrics {
+  const k = d === 'easy' ? 0.75 : d === 'hard' ? 1.3 : 1;
+  const bad = (v: number, goodWhenPositive: boolean) => ((goodWhenPositive ? v < 0 : v > 0) ? Math.round(v * k) : v);
+  return applyEffects(m, [bad(e[0], true), bad(e[1], true), bad(e[2], true), bad(e[3], false)]);
 }
