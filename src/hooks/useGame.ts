@@ -4,10 +4,13 @@ import { BILLS, STAGES, VOTE_STAGES, WHIP_COST } from '../data/bills';
 import { PLEDGES } from '../data/pledges';
 import { DISASTER, DISASTER_HEADLINE, JABS, getJab } from '../data/pmqs';
 import { BASE_BUDGET, START_ECONOMY, deficitPct, nextEconomy, weeklyPressure } from '../logic/economy';
-import { applyScaled, simulateVote } from '../logic/parliament';
+import { applyEffects, applyScaled, simulateVote } from '../logic/parliament';
 import type { BillState, Budget, Choice, Difficulty, Effects, GameState, Metrics, PmqsState, VoteResult, Whip } from '../types';
 
-const KEY = 'pm-westminster-save-v4';
+const KEY = 'pm-westminster-save-v5';
+
+// Factions calm down a little each week. Without this, hostility only ever rises and every game ends in a forced resignation.
+const COOLING: Record<Difficulty, number> = { easy: 4, normal: 4, hard: 5 };
 
 const fresh = (): GameState => ({
   started: false, difficulty: 'normal', victory: false,
@@ -97,12 +100,18 @@ export function useGame() {
     setState((s) => {
       if (s.lastResult || s.ended || s.noConfidence || s.pmqs) return s;
       const metrics = applyScaled(s.metrics, choice.effects, s.difficulty);
-      const [a, l, i, h] = choice.effects;
+      const before = s.metrics;
       return {
         ...s, metrics,
         queue: choice.followUp ? [...s.queue, choice.followUp] : s.queue,
         history: [...s.history, { id: s.currentId, week: s.week, choice: choice.label }],
-        lastResult: { text: choice.result, deltas: { approval: a, loyalty: l, integrity: i, hostility: h } },
+        lastResult: {
+          text: choice.result,
+          deltas: {
+            approval: metrics.approval - before.approval, loyalty: metrics.loyalty - before.loyalty,
+            integrity: metrics.integrity - before.integrity, hostility: metrics.hostility - before.hostility,
+          },
+        },
         ended: checkEnd(metrics),
       };
     });
@@ -115,7 +124,7 @@ export function useGame() {
       const week = s.week + 1;
       const economy = nextEconomy(s.economy, s.budget);
       const p = weeklyPressure(economy, s.budget);
-      const metrics = applyScaled(s.metrics, p.fx, s.difficulty);
+      const metrics = applyEffects(applyScaled(s.metrics, p.fx, s.difficulty), [0, 0, 0, -COOLING[s.difficulty]]);
       const noConfidence = (metrics.loyalty < 25 && Math.random() < 0.5) || (metrics.integrity < 20 && Math.random() < 0.3);
       let ns: GameState = {
         ...s, week, economy, metrics, report: p.notes, currentId: next.id,
@@ -168,6 +177,7 @@ export function useGame() {
   function setBudget(nb: Budget) {
     setState((s) => {
       if (s.cooldown > 0 || s.ended) return s;
+      if ((Object.keys(nb) as (keyof Budget)[]).every((k) => nb[k] === s.budget[k])) return s;
       const d = (k: keyof Budget) => nb[k] - s.budget[k];
       const spend = d('nhs') + d('education') + d('defence') + d('infra');
       const fx: Effects = [
